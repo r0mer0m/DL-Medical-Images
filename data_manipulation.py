@@ -32,7 +32,7 @@ class RandomCrop:
 
     """
 
-    def __init__(self, r_pix):
+    def __init__(self, r_pix=8):
         self.r_pix = r_pix
 
     def __call__(self, x, rand_r, rand_c):

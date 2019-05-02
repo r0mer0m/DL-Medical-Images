@@ -123,18 +123,6 @@ def train_regular_policy(model, path, train_dl, valid_dl,
     return sum_loss / total
 
 
-# Train  with train_triangular_policy plotting times.
-# def training_loop(model, path, train_dl, valid_dl, steps=3,
-#                   lr_low=1e-6, lr_high=0.001, epochs = 4):
-#     for i in range(steps):
-#         start = datetime.now()
-#         loss = train_triangular_policy(model, path, train_dl,
-#                                        valid_dl, lr_low, lr_high, epochs)
-#         end = datetime.now()
-#         t = 'Time elapsed {}'.format(end - start)
-#         print(f"Total averaged loss: {loss}")
-#         print("----End of step", t)
-
 
 
 ################################
@@ -320,7 +308,7 @@ def validate_multilabel(model, valid_dl):
 def validate_binary(model, valid_dl):
     loss, preds, ys = validate_loop(model, valid_dl, 'binary')
     auc = roc_auc_score(ys, preds)
-    accuracy = accuracy_score(ys, preds)
+    accuracy = accuracy_score(ys, (preds>.5).astype(np.int))
 
     return loss, auc, accuracy
 
