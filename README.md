@@ -2,7 +2,7 @@
 
 Code supporting the paper [Deep Learning and Medical Physics: When small is too small?](www.placeholder.com)(placeholder)
 
-## Progress
+## Progress: Dev
 
 Currently re-writting the code on a series of notebooks to make this research more accessible and hopefully useful for new Deep Learning practicioners.
 
