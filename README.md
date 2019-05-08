@@ -47,4 +47,8 @@ All the data used in this project is public to encourage reproducibility.
 
 ## Acknowledgments
 
-We thank [Jeremy Howard](https://www.usfca.edu/faculty/jeremy-howard) for advisoring. 
+We thank [Jeremy Howard](https://www.usfca.edu/faculty/jeremy-howard) for advisoring.
+
+## Contact Information
+
+`email: mromerocalvo@usfca.edu`
