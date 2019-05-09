@@ -1,7 +1,7 @@
 
 from core import *
-# from __utils__ import *
-# from __dataBatches__ import *
+from utils import lr_loss_plot
+
 
 # loss_function = F.binary_cross_entropy_with_logits
 
@@ -162,6 +162,42 @@ class FinderPolicy:
     def step(self):
         self.idx = self.idx + 1
         return self.lr_schedule[self.idx], self.mom
+
+
+# LR finder loop
+def lr_finder(model, n_epochs, train_dl, min_lr=1e-4, max_lr=1e-1, save_path=None, early_stopping=200):
+    if save_path: save_model(model, save_path)
+    model.train()
+
+    policy = FinderPolicy(n_epochs=n_epochs, dl=train_dl, min_lr=min_lr, max_lr=max_lr)
+    optimizer = OptimizerWrapper(model, policy)
+
+    lrs = optimizer.policy.lr_schedule
+
+    losses = []
+    cnt = 0
+
+    for _ in tqdm_notebook(range(n_epochs)):
+        train_dl.set_random_choices()
+        for it, (x, y) in enumerate(tqdm_notebook(train_dl)):
+
+            optimizer.zero_grad()
+
+            out = model(x)
+            loss = F.binary_cross_entropy_with_logits(input=out, target=y)
+
+            loss.backward()
+            optimizer.step()
+
+            losses.append(loss.item())
+
+            if it % 200 == 199: lr_loss_plot(lrs, losses)
+            if cnt == early_stopping: return lrs[:cnt], losses
+            cnt += 1
+
+    if save_path: load_model(model, p)
+
+    return lrs, losses
 
 
 class TrainingPolicy:

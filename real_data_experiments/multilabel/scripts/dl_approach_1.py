@@ -1,34 +1,34 @@
 
-from core import * # basic imports
+import sys; sys.path.append("../../..")
+
+from core import *
 from data_manipulation import DataBatches, RandomRotation, Flip, RandomCrop
 from utils import save_model, load_model, lr_loss_plot
 from architectures import DenseNet121
 from train_functions import get_optimizer, FinderPolicy, OptimizerWrapper, validate_multilabel
-import warnings; warnings.filterwarnings('ignore')
 
-batch_size = 16
-epochs = 50
-transforms=[RandomRotation(arc_width=20), Flip(), RandomCrop(r_pix=8)]
-data = '14diseases'
+BATCH_SIZE = 16
+EPOCHS = 50
+TRANSFORMATIONS = [RandomRotation(arc_width=20), Flip(), RandomCrop(r_pix=8)]
+DATA = '14diseases'
 
-methods = [(False, False, False),
-           (True, True, False),
-           (True, False, False),
-           (True, True, True),
-           ('MURA', True, False),
-           ('MURA', False, False),
-           ('MURA', True, True)] # pretrained / freeze first blocks / prog_unfreezing
-random_states = range(10)
-n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
+# (pretrained, freeze first blocks, prog_unfreezing)
+METHODS = [(False, False, False), 
+           (True, True, False), (True, False, False), (True, True, True),
+           ('MURA', True, False), ('MURA', False, False), ('MURA', True, True)] 
 
-PATH = Path('../data')
-SAVE_DIRECTORY = Path('../latest_models/14diseases-app1')
-SAVE_DATA = Path('../latest_data/14diseases-app1')   
-img_folder_path = PATH/'ChestXRay-250'
+RANDOM_STATES = range(10)
+SAMPLE_AMOUNTS = [50,100,200,400,600,800,1000,1200,1400,1600,1800,2000]
+
+BASE_PATH = Path('../../../../')
+PATH = BASE_PATH/'data'
+SAVE_DIRECTORY = BASE_PATH/'output/real_data_experiments/multilabel/models'
+SAVE_DATA = BASE_PATH/'output/real_data_experiments/multilabel/results'
+IMG_FOLDER = PATH/'ChestXRay-250'
 
 
 def train(epochs, train_dl, valid_dl, model, save_path=None,min_lr=1e-6,
-          max_lr=0.001, epsilon=.01, unfreeze_during_loop:tuple=None):
+          max_lr=0.001, epsilon=.001, unfreeze_during_loop:tuple=None):
     
     lr = max_lr
     prev_loss, min_loss = np.inf, np.inf
@@ -76,57 +76,50 @@ def train(epochs, train_dl, valid_dl, model, save_path=None,min_lr=1e-6,
             break
 
 # Training            
-
 train_df = pd.read_csv(PATH/"train_df.csv")
 valid_df = pd.read_csv(PATH/"val_df.csv")
 
-
-for pretrained, freeze, grad_unfreez in methods:
+for pretrained, freeze, grad_unfreez in METHODS:
     
-    valid_dl = DataBatches(valid_df,img_folder_path=img_folder_path,
-                     transforms = False, shuffle = False, data= data,
-                     batch_size = batch_size, normalize=pretrained)
+    valid_dl = DataBatches(valid_df,img_folder_path=IMG_FOLDER,transforms=False, 
+                           shuffle=False, data=DATA, batch_size=BATCH_SIZE, normalize=pretrained)
 
-    for rs in random_states:
+    for rs in RANDOM_STATES:
 
         train_df = train_df.sample(frac=1)
 
-        for N in n_samples:
+        for N in SAMPLE_AMOUNTS:
 
             df = train_df[:N]
 
-            train_dl = DataBatches(df, img_folder_path=img_folder_path, transforms=transforms, shuffle=True, data=data,
-                                   batch_size=batch_size, normalize=pretrained)
+            train_dl = DataBatches(df, img_folder_path=IMG_FOLDER, transforms=TRANSFORMATIONS, 
+                                   shuffle=True, data=DATA, batch_size=BATCH_SIZE, normalize=pretrained)
 
             model = DenseNet121(14, pretrained=pretrained, freeze=freeze).cuda()
 
-            save_path = SAVE_DIRECTORY/f"{pretrained}-{freeze}-{grad_unfreez}-{N}-{rs}.pth"
+            save_path = SAVE_DIRECTORY/f"app1_{pretrained}-{freeze}-{grad_unfreez}-{N}-{rs}.pth"
 
-            train(epochs, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if grad_unfreez else None)
+            train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if grad_unfreez else None)
 
 # Evaluation
 
 test_df = pd.read_csv(PATH/"test_df.csv")
 
-for pretrained, freeze, grad_unfreeze in methods:
-    
-    test_dl = DataBatches(test_df,img_folder_path=img_folder_path,
-                  transforms = True, shuffle = False, data=data,
-                  batch_size = batch_size, normalize=pretrained)
+for pretrained, freeze, grad_unfreeze in METHODS:
     
     losses = [[] for _ in n_samples]
     aucs = [[] for _ in n_samples]
     
-    loss_path = SAVE_DATA/f"losses_{pretrained}_{freeze}_{grad_unfreeze}"
-    aucs_path = SAVE_DATA/f"aucs_{pretrained}_{freeze}_{grad_unfreeze}"
+    test_dl = DataBatches(test_df,img_folder_path=IMG_FOLDER, transforms=TRANSFORMATIONS, 
+                          shuffle=False, data=DATA, batch_size=BATCH_SIZE, normalize=pretrained)
     
-    for i, N in enumerate(n_samples):
+    for i, N in enumerate(SAMPLE_AMOUNTS):
         
-        for rs in random_states:
+        for rs in RANDOM_STATES:
             
             model = DenseNet121(14, pretrained=pretrained, freeze=freeze).cuda()
 
-            load_path = SAVE_DIRECTORY/f"{pretrained}-{freeze}-{grad_unfreeze}-{N}-{rs}.pth"
+            load_path = SAVE_DIRECTORY/f"app1_{pretrained}-{freeze}-{grad_unfreeze}-{N}-{rs}.pth"
             
             load_model(model, load_path)
             
@@ -135,8 +128,8 @@ for pretrained, freeze, grad_unfreeze in methods:
             losses[i].append(loss)
             aucs[i].append(mean_auc)
     
-    losses = np.array(losses)
-    aucs = np.array(aucs)
+    loss_path = SAVE_DATA/f"losses_{pretrained}_{freeze}_{grad_unfreeze}"
+    aucs_path = SAVE_DATA/f"aucs_{pretrained}_{freeze}_{grad_unfreeze}"
     
-    numpy.save(loss_path, losses)
-    numpy.save(aucs_path, aucs)
+    numpy.save(loss_path, np.array(losses))
+    numpy.save(aucs_path, np.array(aucs))

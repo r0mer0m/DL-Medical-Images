@@ -1,4 +1,5 @@
 from core import *
+from utils import load_model
 # from __utils__ import *
 from data_manipulation import *
 
