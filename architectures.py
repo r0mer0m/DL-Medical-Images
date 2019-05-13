@@ -19,7 +19,11 @@ def get_top_layers(pretrained):
     '''
     if pretrained == 'MURA':
         top = DenseNet121(1, False)
-        load_model(top, '../latest_models/mura_2.pth')
+        load_model(top, '/data/miguel/practicum/latest_models/mura_2.pth')
+        out = list([group.children() for group in top.groups[:2]])
+    elif pretrained == '13diseases':
+        top = DenseNet121(13, False)
+        load_model(top, '/data/miguel/practicum/output/real_data_experiments/multilabel/13-lbls-model/model-minus-idx10.pth')
         out = list([group.children() for group in top.groups[:2]])
     elif pretrained in (True, False):
         top_model = models.densenet121(pretrained=pretrained)

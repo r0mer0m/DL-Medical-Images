@@ -165,7 +165,7 @@ class FinderPolicy:
 
 
 # LR finder loop
-def lr_finder(model, n_epochs, train_dl, min_lr=1e-4, max_lr=1e-1, save_path=None, early_stopping=200):
+def lr_finder(model, n_epochs, train_dl, min_lr=1e-4, max_lr=1e-1, save_path=None, early_stopping=200, plot_every=200):
     if save_path: save_model(model, save_path)
     model.train()
 
@@ -179,19 +179,19 @@ def lr_finder(model, n_epochs, train_dl, min_lr=1e-4, max_lr=1e-1, save_path=Non
 
     for _ in tqdm_notebook(range(n_epochs)):
         train_dl.set_random_choices()
-        for it, (x, y) in enumerate(tqdm_notebook(train_dl)):
+        for it, (x, y) in enumerate(tqdm_notebook(train_dl, leave=False)):
 
             optimizer.zero_grad()
 
             out = model(x)
-            loss = F.binary_cross_entropy_with_logits(input=out, target=y)
+            loss = F.binary_cross_entropy_with_logits(input=out.squeeze(), target=y)
 
             loss.backward()
             optimizer.step()
 
             losses.append(loss.item())
 
-            if it % 200 == 199: lr_loss_plot(lrs, losses)
+            if cnt % plot_every == (plot_every-1): lr_loss_plot(lrs, losses)
             if cnt == early_stopping: return lrs[:cnt], losses
             cnt += 1
 
@@ -319,30 +319,34 @@ def validate_loop(model, valid_dl, task):
 
     for x, y in valid_dl:
         out = model(x)
-        loss = loss_fun(out, y)
+        loss = loss_fun(out.squeeze(), y)
 
         batch = y.shape[0]
         sum_loss += batch * (loss.item())
         total += batch
 
-        preds.append(out.detach().cpu().numpy())
+        preds.append(out.squeeze().detach().cpu().numpy())
         ys.append(cuda2cpu(y))
-
-    preds = np.vstack(preds)
-    ys = np.vstack(ys)
 
     return sum_loss/total, preds, ys
 
 
 def validate_multilabel(model, valid_dl):
     loss, preds, ys = validate_loop(model, valid_dl, 'multilabel')
+
+    preds = np.vstack(preds)
+    ys = np.vstack(ys)
+
     mean_auc, aucs = ave_auc(preds, ys)
 
     return loss, mean_auc, aucs
 
-
 def validate_binary(model, valid_dl):
     loss, preds, ys = validate_loop(model, valid_dl, 'binary')
+
+    preds = np.concatenate(preds)
+    ys = np.concatenate(ys)
+
     auc = roc_auc_score(ys, preds)
     accuracy = accuracy_score(ys, (preds>.5).astype(np.int))
 
@@ -350,6 +354,10 @@ def validate_binary(model, valid_dl):
 
 def validate_regression(model, valid_dl):
     loss, preds, ys = validate_loop(model, valid_dl, 'regression')
+
+    preds = np.concatenate(preds)
+    ys = np.concatenate(ys)
+
     R2 = R2L1(y=ys,out=preds)
     return loss, R2
 

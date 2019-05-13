@@ -130,14 +130,16 @@ class ChestXrayDataSet(Dataset):
 
     def __init__(self, df, image_path):
         self.image_files = df["ImageIndex"].values
-        self.labels = df["Label"].values
+        # self.labels = df["Label"].values
+        self.lables = np.array([[int(i) for i in obs.split(" ")]
+                                for obs in df["Label"].values]).astype(np.float32)
         self.image_path = image_path
 
     def __getitem__(self, index):
         path = self.image_path / self.image_files[index]
         x = cv2.imread(str(path)).astype(np.float32)
         x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB) / 255
-        y = np.array([int(i) for i in self.labels[index].split(" ")]).astype(np.float32)
+        y = self.lables[index]
         return x, y
 
     def __len__(self):
