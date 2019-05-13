@@ -381,33 +381,33 @@ def TTA_loop(model, valid_dl, task, ndl=4):
         valid_dl.set_random_choices()
         for x, y in valid_dl:
             out = model(x)
-            loss = loss_fun(out, y)
+            loss = loss_fun(out.squeeze(), y)
 
             batch = y.shape[0]
             sum_loss += batch * (loss.item())
             total += batch
-            preds[i].append(out.detach().cpu().numpy())
+            preds[i].append(out.squeeze().detach().cpu().numpy())
 
     for x, y in valid_dl:
         out = model(x)
-        loss = loss_fun(out, y)
+        loss = loss_fun(out.squeeze(), y)
 
         batch = y.shape[0]
         sum_loss += batch * (loss.item())
         total += batch
 
-        preds[ndl - 1].append(out.detach().cpu().numpy())
+        preds[ndl - 1].append(out.squeeze().detach().cpu().numpy())
         ys.append(cuda2cpu(y))
-
-    preds = [np.vstack(pred) for pred in preds]
-    preds = np.mean(preds, axis=0)
-    ys = np.vstack(ys)
 
     return sum_loss / total, preds, ys
 
 
 def TTA_multilabel(model, valid_dl, ndl=4):
     loss, preds, ys = TTA_loop(model, valid_dl, 'multilabel', ndl)
+
+    preds = [np.vstack(pred) for pred in preds]
+    preds = np.mean(preds, axis=0)
+    ys = np.vstack(ys)
 
     mean_auc, aucs = ave_auc(preds, ys)
 
@@ -417,14 +417,24 @@ def TTA_multilabel(model, valid_dl, ndl=4):
 
 def TTA_binary(model, valid_dl, ndl=4):
     loss, preds, ys = TTA_loop(model, valid_dl, 'binary', ndl)
+
+    preds = [np.concatenate(pred) for pred in preds]
+    preds = np.mean(preds, axis=0)
+    ys = np.concatenate(ys)
+
     auc = roc_auc_score(ys, preds)
-    accuracy = accuracy_score(ys, preds)
+    accuracy = accuracy_score(ys, (preds>0).astype(int))
     print("TTA loss %.4f  auc %.4f  accuracy %.4f" % (loss, auc, accuracy))
     return loss, auc, accuracy
 
 
 def TTA_regression(model, valid_dl, ndl=4):
     loss, preds, ys = TTA_loop(model, valid_dl, 'regression', ndl)
+
+    preds = [np.concatenate(pred) for pred in preds]
+    preds = np.mean(preds, axis=0)
+    ys = np.concatenate(ys)
+
     R2 = R2L1(y=ys, out=preds)
     print("TTA loss %.4f pseudo R2 (L1) %.4f " % (loss, R2))
     return loss, R2
