@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Custom folders
+
+13-labels/data_plots/
+13-labels/models/
+
 # C extensions
 *.so
 
