@@ -19,7 +19,8 @@ NORMALIZE = True # ImageNet
 FREEZE = True
 GRADUAL_UNFREEZING = True
 n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
-
+# n_samples = [6, 12, 24, 36, 48]
+print(n_samples)
 BASE_PATH = Path('../..')
 PATH = BASE_PATH/'data'
 IMG_FOLDER = PATH/'ChestXRay-250'
@@ -141,13 +142,10 @@ test_amt = 2*decode_labels(test_df.Label)[:,IDX].sum()
 valid_df_balanced = subset_df(valid_df, val_amt, idx=IDX)
 test_df_balanced = subset_df(test_df, test_amt, idx=IDX)
 
-valid_dl = DataBatches(df=valid_df_balanced, idx=IDX, transforms=None, shuffle=False,
-                       img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, 
-                       r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
 
-test_dl = DataBatches(df=test_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=False, 
-                      img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, 
-                      r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
+no_pretrained = {'loss': [],
+           'auc': [],
+           'accuracy': []}
 
 imagenet = {'loss': [],
            'auc': [],
@@ -163,11 +161,19 @@ diseases13 = {'loss': [],
 
 for N in n_samples:
     
-    train_df_balanced = subset_df(train_df, val_amt, idx=IDX)
+    train_df_balanced = subset_df(train_df, N, idx=IDX)
 
     train_dl = DataBatches(df=train_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, 
                            r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
+
+    valid_dl = DataBatches(df=valid_df_balanced, idx=IDX, transforms=None, shuffle=False,
+                           img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
+                           r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
+
+    test_dl = DataBatches(df=test_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=False,
+                          img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
+                          r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
     
     print('ImageNet...')
     pretrained = True
@@ -211,14 +217,48 @@ for N in n_samples:
     diseases13['auc'].append(auc)
     diseases13['accuracy'].append(accuracy)
 
+    train_dl = DataBatches(df=train_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=True,
+                           img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
+                           r_pix=R_PIX, normalize=False, seed=SEED)
+
+    valid_dl = DataBatches(df=valid_df_balanced, idx=IDX, transforms=None, shuffle=False,
+                           img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
+                           r_pix=R_PIX, normalize=False, seed=SEED)
+
+    test_dl = DataBatches(df=test_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=False,
+                          img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
+                          r_pix=R_PIX, normalize=False, seed=SEED)
+
+    print('No pretrained...')
+    pretrained = True
+    model = DenseNet121(1, pretrained=False, freeze=False).cuda()
+    model_p = f'models/best_{N}_no_pretrained.pth'
+    train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p,
+          unfreeze_during_loop=None)
+
+    print('Testing with TTA ....')
+    load_model(model, model_p)
+    loss, auc, accuracy = TTA_binary(model, test_dl)
+    no_pretrained['loss'].append(loss)
+    no_pretrained['auc'].append(auc)
+    no_pretrained['accuracy'].append(accuracy)
+
 imagenet = json.dumps(imagenet)
-with open('data_plots/imagenet.json', 'w') as f:
+# with open('data_plots/imagenet.json', 'w') as f:
+with open('data_plots/imagenet_small.json', 'w') as f:
     f.write(imagenet)
 
 MURA = json.dumps(MURA)
-with open('data_plots/MURA.json', 'w') as f:
+# with open('data_plots/MURA.json', 'w') as f:
+with open('data_plots/MURA_small.json', 'w') as f:
     f.write(MURA)
     
 diseases13 = json.dumps(diseases13)
-with open('data_plots/13diseases.json', 'w') as f:
+# with open('data_plots/13diseases.json', 'w') as f:
+with open('data_plots/13diseases_small.json', 'w') as f:
     f.write(diseases13)
+
+no_pretrained = json.dumps(no_pretrained)
+# with open('data_plots/13diseases.json', 'w') as f:
+with open('data_plots/no_pretrained_small.json', 'w') as f:
+    f.write(no_pretrained)

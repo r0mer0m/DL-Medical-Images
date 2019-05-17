@@ -13,7 +13,6 @@ def normalize_mura(im):
     mura_stats = np.array([[0.204, 0.204, 0.204], [0.121, 0.121, 0.121]])
     return (im - mura_stats[0])/mura_stats[1]
 
-
 ######### TRANSFORMATIONS ##########
 
 
@@ -312,8 +311,7 @@ class DataBatches:
 
     def __iter__(self): return ((x.cuda().float(), y.cuda().float()) for (x, y) in self.dataloader)
 
-    def __len__(self):
-        return len(self.dataloader)
+    def __len__(self): return len(self.dataloader)
 
     def set_random_choices(self):
         if hasattr(self.dataset, "set_random_choices"):
