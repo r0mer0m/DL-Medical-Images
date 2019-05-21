@@ -12,14 +12,14 @@ import json
 SEED = 42
 R_PIX = 8
 IDX = 10
-BATCH_SIZE = 16
-EPOCHS = 10
+BATCH_SIZE = 8
+EPOCHS = 30
 TRANSFORMATIONS = [RandomRotation(arc_width=20), Flip(), RandomCrop(r_pix=R_PIX)]
 NORMALIZE = True # ImageNet
 FREEZE = True
 GRADUAL_UNFREEZING = True
-n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
-# n_samples = [6, 12, 24, 36, 48]
+# n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
+n_samples = [8,  16, 24, 32, 40, 48]
 print(n_samples)
 BASE_PATH = Path('../..')
 PATH = BASE_PATH/'data'
@@ -259,6 +259,6 @@ with open('data_plots/13diseases_small.json', 'w') as f:
     f.write(diseases13)
 
 no_pretrained = json.dumps(no_pretrained)
-# with open('data_plots/13diseases.json', 'w') as f:
+# with open('data_plots/no_pretrained.json', 'w') as f:
 with open('data_plots/no_pretrained_small.json', 'w') as f:
     f.write(no_pretrained)
