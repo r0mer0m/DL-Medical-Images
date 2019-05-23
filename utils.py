@@ -21,10 +21,10 @@ def read_image(path):
     return cv2.cvtColor(im, cv2.COLOR_BGR2RGB)/255
 
 def resize(x, sz:(int, tuple)):
-    out = cv2.resize(x, sz) if isinstance(sz, tuple) else cv2.resize(x, (sz, sz))
+    out = cv2.resize(x, sz if isinstance(sz, tuple) else (sz, sz))
     return out
 
-def read_resize(img_path, sz=224):
+def read_resize(img_path, sz=250):
     im = read_image(img_path)
     return resize(im, sz)
 
