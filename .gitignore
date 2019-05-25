@@ -7,6 +7,14 @@ __pycache__/
 
 13-labels/data_plots/
 13-labels/models/
+13-labels/data/
+
+training_methods/models/
+training_methods/results/
+
+transfer_learning_methods/models/
+transfer_learning_methods/results/
+
 
 # C extensions
 *.so

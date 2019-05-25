@@ -12,14 +12,14 @@ import json
 SEED = 42
 R_PIX = 8
 IDX = 10
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 EPOCHS = 30
 TRANSFORMATIONS = [RandomRotation(arc_width=20), Flip(), RandomCrop(r_pix=R_PIX)]
 NORMALIZE = True # ImageNet
 FREEZE = True
 GRADUAL_UNFREEZING = True
-# n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
-n_samples = [8,  16, 24, 32, 40, 48]
+n_samples = [50,100,200,400,600,800,1000,1200,1400,1600,1800, 2000]
+# n_samples = [6, 12, 24, 36, 48]
 print(n_samples)
 BASE_PATH = Path('../..')
 PATH = BASE_PATH/'data'
@@ -142,6 +142,13 @@ test_amt = 2*decode_labels(test_df.Label)[:,IDX].sum()
 valid_df_balanced = subset_df(valid_df, val_amt, idx=IDX)
 test_df_balanced = subset_df(test_df, test_amt, idx=IDX)
 
+valid_dl = DataBatches(df=valid_df_balanced, idx=IDX, transforms=None, shuffle=False,
+                       img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, 
+                       r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
+
+test_dl = DataBatches(df=test_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=False, 
+                      img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, 
+                      r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
 
 no_pretrained = {'loss': [],
            'auc': [],
@@ -152,6 +159,10 @@ imagenet = {'loss': [],
            'accuracy': []}
 
 MURA = {'loss': [],
+           'auc': [],
+           'accuracy': []}
+
+chexpert = {'loss': [],
            'auc': [],
            'accuracy': []}
 
@@ -203,6 +214,20 @@ for N in n_samples:
     MURA['auc'].append(auc)
     MURA['accuracy'].append(accuracy)
     
+    print('CheXPert...')
+    pretrained = 'chexpert'
+    model = DenseNet121(1, pretrained=pretrained, freeze=FREEZE).cuda()
+    model_p = f'models/best_{N}_chexpert.pth'
+    train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p, 
+          unfreeze_during_loop=(.1, .2) if GRADUAL_UNFREEZING else None)
+
+    print('Testing with TTA ....')
+    load_model(model, model_p)
+    loss, auc, accuracy = TTA_binary(model, test_dl)
+    chexpert['loss'].append(loss)
+    chexpert['auc'].append(auc)
+    chexpert['accuracy'].append(accuracy)
+    
     print('13 diseases...')
     pretrained = '13diseases'
     model = DenseNet121(1, pretrained=pretrained, freeze=FREEZE).cuda()
@@ -216,7 +241,7 @@ for N in n_samples:
     diseases13['loss'].append(loss)
     diseases13['auc'].append(auc)
     diseases13['accuracy'].append(accuracy)
-
+    
     train_dl = DataBatches(df=train_df_balanced, idx=IDX, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE,
                            r_pix=R_PIX, normalize=False, seed=SEED)
@@ -244,21 +269,26 @@ for N in n_samples:
     no_pretrained['accuracy'].append(accuracy)
 
 imagenet = json.dumps(imagenet)
-# with open('data_plots/imagenet.json', 'w') as f:
-with open('data_plots/imagenet_small.json', 'w') as f:
+with open('data_plots/imagenet.json', 'w') as f:
+# with open('data_plots/imagenet_small.json', 'w') as f:
     f.write(imagenet)
 
 MURA = json.dumps(MURA)
-# with open('data_plots/MURA.json', 'w') as f:
-with open('data_plots/MURA_small.json', 'w') as f:
+with open('data_plots/MURA.json', 'w') as f:
+# with open('data_plots/MURA_small.json', 'w') as f:
     f.write(MURA)
     
+chexpert = json.dumps(chexpert)
+with open('data_plots/chexpert.json', 'w') as f:
+# with open('data_plots/chexpert_small.json', 'w') as f:
+    f.write(chexpert)
+    
 diseases13 = json.dumps(diseases13)
-# with open('data_plots/13diseases.json', 'w') as f:
-with open('data_plots/13diseases_small.json', 'w') as f:
+with open('data_plots/13diseases.json', 'w') as f:
+# with open('data_plots/13diseases_small.json', 'w') as f:
     f.write(diseases13)
 
 no_pretrained = json.dumps(no_pretrained)
-# with open('data_plots/no_pretrained.json', 'w') as f:
-with open('data_plots/no_pretrained_small.json', 'w') as f:
+with open('data_plots/no_pretrained.json', 'w') as f:
+# with open('data_plots/no_pretrained_small.json', 'w') as f:
     f.write(no_pretrained)

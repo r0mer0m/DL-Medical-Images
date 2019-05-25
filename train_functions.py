@@ -318,7 +318,7 @@ def validate_loop(model, valid_dl, task):
     preds = []
 
     for x, y in valid_dl:
-        out = model(x)
+        out = model(x).squeeze()
         loss = loss_fun(out.squeeze(), y)
 
         batch = y.shape[0]
@@ -380,7 +380,7 @@ def TTA_loop(model, valid_dl, task, ndl=4):
     for i in range(ndl - 1):
         valid_dl.set_random_choices()
         for x, y in valid_dl:
-            out = model(x)
+            out = model(x).squeeze()
             loss = loss_fun(out.squeeze(), y)
 
             batch = y.shape[0]

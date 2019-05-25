@@ -282,7 +282,7 @@ class Transform():
 
 BASE_DATASETS = {'hands': HandXrayDataSet,
                  '14diseases': ChestXrayDataSet,
-                 'chest-PvsNP': ChestXrayDataSet_PvsNP,
+                 'Pneumonia': ChestXrayDataSet_PvsNP,
                  'MURA': MURAXrayDataSet
                  }
 
@@ -309,7 +309,7 @@ class DataBatches:
             )
         else: ValueError("This dataset is not contemplated")
 
-    def __iter__(self): return ((x.cuda().float(), y.cuda().float()) for (x, y) in self.dataloader)
+    def __iter__(self): return ((x.cuda().float(), y.cuda().float().squeeze()) for (x, y) in self.dataloader)
 
     def __len__(self): return len(self.dataloader)
 
@@ -366,11 +366,11 @@ def balance_obs(df:pd.DataFrame, amt:int =None, random_state:int=42):
     
     if amt > len(df[df.Label==1]):
         pos = pos_df
-        pos_upsampling = pos_df.sample(f = amt-len(df[df.Label==1]), random_state=random_state, replace=True)
+        pos_upsampling = pos_df.sample(n = amt-len(df[df.Label==1]), random_state=random_state, replace=True)
         neg = neg_df.sample(n = amt, random_state=random_state, replace=False)
         data = [pos, pos_upsampling, neg]
     else:
-        pos = pos_df.sample(f=amt, random_state=random_state, replace=False)
+        pos = pos_df.sample(n=amt, random_state=random_state, replace=False)
         neg = neg_df.sample(n=amt, random_state=random_state, replace=False)
         data = [pos,  neg]
 

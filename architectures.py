@@ -25,6 +25,10 @@ def get_top_layers(pretrained):
         top = DenseNet121(13, False)
         load_model(top, '/data/miguel/practicum/output/real_data_experiments/multilabel/13-lbls-model/model-minus-idx10.pth')
         out = list([group.children() for group in top.groups[:2]])
+    elif pretrained == 'chexpert':
+        top = DenseNet121(5, False)
+        load_model(top, '/data/miguel/practicum/latest_models/chexpert_densenet121.pth')
+        out = list([group.children() for group in top.groups[:2]])
     elif pretrained in (True, False):
         top_model = models.densenet121(pretrained=pretrained)
         top_layers = list(top_model.children())[0]
