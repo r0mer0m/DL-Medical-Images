@@ -6,6 +6,7 @@ from data_manipulation import DataBatches, RandomRotation, Flip, RandomCrop
 from utils import save_model, load_model, lr_loss_plot
 from architectures import DenseNet121
 from train_functions import get_optimizer, FinderPolicy, OptimizerWrapper, validate_multilabel, TTA_multilabel
+import json
 
 BATCH_SIZE = 16
 EPOCHS = 10
@@ -150,8 +151,6 @@ for N in SAMPLE_AMOUNTS:
     
 # Evaluation
 
-test_df = pd.read_csv(PATH/"test_df.csv")
-
 feature_extractor = {
     'losses':[],
     'aucs':[]
@@ -165,12 +164,17 @@ grad_unfr_diff_lr = {
     'aucs':[]
 }
 
+test_df = pd.read_csv(PATH/"test_df.csv")
+
+test_df = multi_label_2_binary(test_df, tgt2idx['Pneumonia'])
+test_df = balance_obs(test_df, amt=2*len(test_df[test_df['Label']==1]))
+
 test_dl = DataBatches(test_df,img_folder_path=IMG_FOLDER, transforms=TRANSFORMATIONS, 
                       shuffle=False, data=DATA, batch_size=BATCH_SIZE, normalize=PRETRAINED)
 
 for i, N in enumerate(SAMPLE_AMOUNTS):
 
-    model = DenseNet121(14, pretrained=PRETRAINED, freeze=FREEZE).cuda()
+    model = DenseNet121(14, pretrained=PRETRAINED, freeze=False).cuda()
 
     load_path = SAVE_DIRECTORY/f"chestxray14-feature-extractor-{N}.pth"
 

@@ -15,6 +15,10 @@ training_methods/results/
 transfer_learning_methods/models/
 transfer_learning_methods/results/
 
+transfer_learning_dataset/models/
+transfer_learning_dataset/results/
+transfer_learning_dataset/data_plots/
+transfer_learning_dataset/data/
 
 # C extensions
 *.so
