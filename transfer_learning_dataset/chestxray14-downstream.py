@@ -6,7 +6,7 @@ from core import *
 from data_manipulation import Transform, RandomRotation, Flip, RandomCrop, balance_obs, multi_label_2_binary, DataBatches
 from utils import save_model, load_model, lr_loss_plot
 from architectures import DenseNet121
-from train_functions import OptimizerWrapper, TrainingPolicy, FinderPolicy, validate_multilabel, lr_finder, validate_binary, TTA_binary
+from train_functions import OptimizerWrapper, TrainingPolicy, FinderPolicy, validate_multilabel, lr_finder, validate_multilabel, TTA_multilabel
 import json
 
 SEED = 42
@@ -25,11 +25,11 @@ print(n_samples)
 BASE_PATH = Path('/data/miguel/practicum/')
 PATH = BASE_PATH/'data'
 IMG_FOLDER = PATH/'ChestXRay-250'
-DATA = 'Pneumonia'
+DATA = '14diseases'
 
-idx2tgt = [ 'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 'Pneumonia',
-               'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 'Fibrosis', 'Pleural_Thickening', 'Hernia']
-tgt2idx = {disease: i for i, disease in enumerate(idx2tgt)}
+# idx2tgt = [ 'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 'Pneumonia',
+#                'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 'Fibrosis', 'Pleural_Thickening', 'Hernia']
+# tgt2idx = {disease: i for i, disease in enumerate(idx2tgt)}
 
 # To balance validation and testing
 def decode_labels(df_col):
@@ -130,7 +130,7 @@ def train(n_epochs, train_dl, valid_dl, model, max_lr=.01, wd=0, alpha=1./ 3,
             cnt += 1
 
 
-        val_loss, measure, _ = validate_binary(model, valid_dl)
+        val_loss, measure, _ = validate_multilabel(model, valid_dl)
         print(f'Ep. {epoch+1} - train loss {agg_loss/agg_div:.4f} -  val loss {val_loss:.4f} AUC {measure:.4f}')
 
         if save_path and val_loss < best_loss:
@@ -142,13 +142,15 @@ train_df = pd.read_csv(PATH/'train_df.csv')
 valid_df = pd.read_csv(PATH/"val_df.csv")
 test_df = pd.read_csv(PATH/"test_df.csv")
 
-train_df = multi_label_2_binary(train_df, tgt2idx['Pneumonia'])
+# train_df = multi_label_2_binary(train_df, tgt2idx['Pneumonia'])
 
-valid_df = multi_label_2_binary(valid_df, tgt2idx['Pneumonia'])
-valid_df = balance_obs(valid_df, amt=2*len(valid_df[valid_df['Label']==1]))
+# valid_df = multi_label_2_binary(valid_df, tgt2idx['Pneumonia'])
+# valid_df = balance_obs(valid_df, amt=2*len(valid_df[valid_df['Label']==1]))
 
-test_df = multi_label_2_binary(test_df, tgt2idx['Pneumonia'])
-test_df = balance_obs(test_df, amt=2*len(test_df[test_df['Label']==1]))
+# test_df = multi_label_2_binary(test_df, tgt2idx['Pneumonia'])
+# test_df = balance_obs(test_df, amt=2*len(test_df[test_df['Label']==1]))
+
+train_df = train_df.sample(frac=1)
 
 no_pretrained = {'loss': [],
            'auc': [],
@@ -168,9 +170,9 @@ chexpert = {'loss': [],
 
 for N in n_samples:
     
-    train_df_balanced = balance_obs(train_df, amt=N)
+    train_df_balanced = train_df[:N]
 
-    train_dl = DataBatches(df=train_df_balanced, transforms=TRANSFORMATIONS, shuffle=True,
+    train_dl = DataBatches(df=train_df, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, data=DATA,
                            r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
 
@@ -184,47 +186,47 @@ for N in n_samples:
     
     print('ImageNet...')
     pretrained = True
-    model = DenseNet121(1, pretrained=pretrained, freeze=FREEZE).cuda()
-    model_p = f'models/best_pneumonia_{N}_imagenet.pth'
+    model = DenseNet121(14, pretrained=pretrained, freeze=FREEZE).cuda()
+    model_p = f'models/best_14diseases_{N}_imagenet.pth'
     train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p, 
           unfreeze_during_loop=(.1, .2) if GRADUAL_UNFREEZING else None)
     
     print('Testing with TTA ....')
     load_model(model, model_p)
-    loss, auc, accuracy = TTA_binary(model, test_dl)
+    loss, auc, accuracy = TTA_multilabel(model, test_dl)
     imagenet['loss'].append(loss)
     imagenet['auc'].append(auc)
     imagenet['accuracy'].append(accuracy)
     
     print('MURA...')
     pretrained = 'MURA'
-    model = DenseNet121(1, pretrained=pretrained, freeze=FREEZE).cuda()
-    model_p = f'models/best_pneumonia_{N}_MURA.pth'
+    model = DenseNet121(14, pretrained=pretrained, freeze=FREEZE).cuda()
+    model_p = f'models/best_14diseases_{N}_MURA.pth'
     train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p, 
           unfreeze_during_loop=(.1, .2) if GRADUAL_UNFREEZING else None)
 
     print('Testing with TTA ....')
     load_model(model, model_p)
-    loss, auc, accuracy = TTA_binary(model, test_dl)
+    loss, auc, accuracy = TTA_multilabel(model, test_dl)
     MURA['loss'].append(loss)
     MURA['auc'].append(auc)
     MURA['accuracy'].append(accuracy)
     
     print('CheXPert...')
     pretrained = 'chexpert'
-    model = DenseNet121(1, pretrained=pretrained, freeze=FREEZE).cuda()
-    model_p = f'models/best_pneumonia_{N}_chexpert.pth'
+    model = DenseNet121(14, pretrained=pretrained, freeze=FREEZE).cuda()
+    model_p = f'models/best_14diseases_{N}_chexpert.pth'
     train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p, 
           unfreeze_during_loop=(.1, .2) if GRADUAL_UNFREEZING else None)
 
     print('Testing with TTA ....')
     load_model(model, model_p)
-    loss, auc, accuracy = TTA_binary(model, test_dl)
+    loss, auc, accuracy = TTA_multilabel(model, test_dl)
     chexpert['loss'].append(loss)
     chexpert['auc'].append(auc)
     chexpert['accuracy'].append(accuracy)
     
-    train_dl = DataBatches(df=train_df_balanced, transforms=TRANSFORMATIONS, shuffle=True,
+    train_dl = DataBatches(df=train_df, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, data=DATA,
                            r_pix=R_PIX, normalize=False, seed=SEED)
 
@@ -238,34 +240,34 @@ for N in n_samples:
 
     print('No pretrained...')
     pretrained = True
-    model = DenseNet121(1, pretrained=False, freeze=False).cuda()
-    model_p = f'models/best_pneumonia_{N}_no_pretrained.pth'
+    model = DenseNet121(14, pretrained=False, freeze=False).cuda()
+    model_p = f'models/best_14diseases_{N}_no_pretrained.pth'
     train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=model_p,
           unfreeze_during_loop=None)
 
     print('Testing with TTA ....')
     load_model(model, model_p)
-    loss, auc, accuracy = TTA_binary(model, test_dl)
+    loss, auc, accuracy = TTA_multilabel(model, test_dl)
     no_pretrained['loss'].append(loss)
     no_pretrained['auc'].append(auc)
     no_pretrained['accuracy'].append(accuracy)
 
 imagenet = json.dumps(imagenet)
-with open('data_plots/imagenet_pneumonia.json', 'w') as f:
+with open('data_plots/imagenet_14diseases.json', 'w') as f:
 # with open('data_plots/imagenet_small.json', 'w') as f:
     f.write(imagenet)
 
 MURA = json.dumps(MURA)
-with open('data_plots/MURA_pneumonia.json', 'w') as f:
+with open('data_plots/MURA_14diseases.json', 'w') as f:
 # with open('data_plots/MURA_small.json', 'w') as f:
     f.write(MURA)
     
 chexpert = json.dumps(chexpert)
-with open('data_plots/chexpert_pneumonia.json', 'w') as f:
+with open('data_plots/chexpert_14diseases.json', 'w') as f:
 # with open('data_plots/chexpert_small.json', 'w') as f:
     f.write(chexpert)
 
 no_pretrained = json.dumps(no_pretrained)
-with open('data_plots/no_pretrained_pneumonia.json', 'w') as f:
+with open('data_plots/no_pretrained_14diseases.json', 'w') as f:
 # with open('data_plots/no_pretrained_small.json', 'w') as f:
     f.write(no_pretrained)
