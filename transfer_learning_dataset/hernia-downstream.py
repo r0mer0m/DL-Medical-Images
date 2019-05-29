@@ -205,21 +205,21 @@ for N in n_samples:
     no_pretrained['accuracy'].append(accuracy)
 
 imagenet = json.dumps(imagenet)
-with open('data_plots/imagenet_{DISEASE.lower()}.json', 'w') as f:
+with open(f'data_plots/imagenet_{DISEASE.lower()}.json', 'w') as f:
 # with open('data_plots/imagenet_small.json', 'w') as f:
     f.write(imagenet)
 
 MURA = json.dumps(MURA)
-with open('data_plots/MURA_{DISEASE.lower()}.json', 'w') as f:
+with open(f'data_plots/MURA_{DISEASE.lower()}.json', 'w') as f:
 # with open('data_plots/MURA_small.json', 'w') as f:
     f.write(MURA)
     
 chexpert = json.dumps(chexpert)
-with open('data_plots/chexpert_{DISEASE.lower()}.json', 'w') as f:
+with open(f'data_plots/chexpert_{DISEASE.lower()}.json', 'w') as f:
 # with open('data_plots/chexpert_small.json', 'w') as f:
     f.write(chexpert)
 
 no_pretrained = json.dumps(no_pretrained)
-with open('data_plots/no_pretrained_{DISEASE.lower()}.json', 'w') as f:
+with open(f'data_plots/no_pretrained_{DISEASE.lower()}.json', 'w') as f:
 # with open('data_plots/no_pretrained_small.json', 'w') as f:
     f.write(no_pretrained)
