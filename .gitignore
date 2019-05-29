@@ -5,9 +5,12 @@ __pycache__/
 
 # Custom folders
 
-13-labels/data_plots/
-13-labels/models/
-13-labels/data/
+13-labels/
+#13-labels/data_plots/
+#13-labels/models/
+#13-labels/data/
+
+real_data_experiments/
 
 training_methods/models/
 training_methods/results/
