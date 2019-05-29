@@ -1,6 +1,6 @@
 # Deep Learning with Medical Images: Best Practices for Small Data
 
-Code supporting the paper Deep Learning with Medical Images: Best Practices for Small Data
+Code supporting the paper Deep Learning with Medical Images: Best Practices for Small Data.
 
 ## Status: Dev
 
