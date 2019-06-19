@@ -158,7 +158,7 @@ for N in SAMPLE_AMOUNTS:
 
     save_path = SAVE_DIRECTORY/f"{DISEASE.lower()}-grad-unfr-diff-lr-{N}.pth"
     
-    one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
+    one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1./3)
     
 # Evaluation
 

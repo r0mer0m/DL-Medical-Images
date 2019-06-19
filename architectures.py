@@ -1,5 +1,5 @@
 from core import *
-from utils import load_model
+from utils import load_model, save_model
 # from __utils__ import *
 from data_manipulation import *
 
@@ -11,26 +11,26 @@ torch.cuda.manual_seed(42)
 ###################################
 
 
-def get_top_layers(pretrained):
+def get_top_layers(pretrained, drop_rate):
     '''Return a list of the top groups of paramteres.
     Handles cases when:
     > Model structure is in sequential groups (MURA)
     > Model structure is the default from densenet121 architecture
     '''
     if pretrained == 'MURA':
-        top = DenseNet121(1, False)
+        top = DenseNet121(1, False, drop_rate=drop_rate)
         load_model(top, '/data/miguel/practicum/latest_models/mura_2.pth')
         out = list([group.children() for group in top.groups[:2]])
     elif pretrained == '13diseases':
-        top = DenseNet121(13, False)
+        top = DenseNet121(13, False, drop_rate=drop_rate)
         load_model(top, '/data/miguel/practicum/output/real_data_experiments/multilabel/13-lbls-model/model-minus-idx10.pth')
         out = list([group.children() for group in top.groups[:2]])
     elif pretrained == 'chexpert':
-        top = DenseNet121(5, False)
+        top = DenseNet121(5, False, drop_rate=drop_rate)
         load_model(top, '/data/miguel/practicum/latest_models/chexpert_densenet121.pth')
         out = list([group.children() for group in top.groups[:2]])
     elif pretrained in (True, False):
-        top_model = models.densenet121(pretrained=pretrained)
+        top_model = models.densenet121(pretrained=pretrained, drop_rate=drop_rate)
         top_layers = list(top_model.children())[0]
         out = [top_layers[:7], top_layers[7:]]
 
@@ -48,7 +48,7 @@ class DenseNet121(nn.Module):
      > freeze layers
     '''
 
-    def __init__(self, out_size: int = 14, pretrained: bool = False, freeze: str = False):
+    def __init__(self, out_size: int = 14, pretrained: bool = False, freeze: str = False, drop_rate=0):
         '''
 
         :param out_size: (int) output size
@@ -57,7 +57,7 @@ class DenseNet121(nn.Module):
         '''
         super().__init__()
 
-        top_layers_groups = get_top_layers(pretrained)
+        top_layers_groups = get_top_layers(pretrained, drop_rate)
 
         self.groups = nn.ModuleList([nn.Sequential(*group) for group in top_layers_groups])
         self.groups.append(nn.Linear(1024, out_size))

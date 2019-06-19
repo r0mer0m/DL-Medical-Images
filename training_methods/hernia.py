@@ -183,13 +183,13 @@ for N in SAMPLE_AMOUNTS:
 
     model = DenseNet121(1, pretrained=PRETRAINED, freeze=FREEZE).cuda()
 
-    save_path = SAVE_DIRECTORY/f"{DISEASE.loser()}-regular-training-{N}.pth"
+    save_path = SAVE_DIRECTORY/f"{DISEASE.lower()}-regular-training-{N}.pth"
 
     regular_training(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path)
     
     model = DenseNet121(1, pretrained=PRETRAINED, freeze=FREEZE).cuda()
 
-    save_path = SAVE_DIRECTORY/f"{DISEASE.loser()}-one-cycle-training-{N}.pth"
+    save_path = SAVE_DIRECTORY/f"{DISEASE.lower()}-one-cycle-training-{N}.pth"
     
     one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if GRADUAL_UNFREEZING else None, alpha=1)
     
@@ -217,7 +217,7 @@ for i, N in enumerate(SAMPLE_AMOUNTS):
 
     model = DenseNet121(1, pretrained=PRETRAINED, freeze=FREEZE).cuda()
 
-    load_path = SAVE_DIRECTORY/f"{DISEASE.loser()}-regular-training-{N}.pth"
+    load_path = SAVE_DIRECTORY/f"{DISEASE.lower()}-regular-training-{N}.pth"
 
     load_model(model, load_path)
 
@@ -226,7 +226,7 @@ for i, N in enumerate(SAMPLE_AMOUNTS):
     regular_training['losses'].append(loss)
     regular_training['aucs'].append(mean_auc)
 
-    load_path = SAVE_DIRECTORY/f"{DISEASE.loser()}-one-cycle-training-{N}.pth"
+    load_path = SAVE_DIRECTORY/f"{DISEASE.lower()}-one-cycle-training-{N}.pth"
 
     load_model(model, load_path)
 
@@ -236,9 +236,9 @@ for i, N in enumerate(SAMPLE_AMOUNTS):
     one_cycle_training['aucs'].append(mean_auc)
 
 regular_training = json.dumps(regular_training)
-with open(f'results/{DISEASE.loser()}_regular_training.json', 'w') as f:
+with open(f'results/{DISEASE.lower()}_regular_training.json', 'w') as f:
     f.write(regular_training)
 
 one_cycle_training = json.dumps(one_cycle_training)
-with open(f'results/{DISEASE.loser()}_one_cycle_training.json', 'w') as f:
+with open(f'results/{DISEASE.lower()}_one_cycle_training.json', 'w') as f:
     f.write(one_cycle_training)

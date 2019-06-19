@@ -1,6 +1,6 @@
 
 from core import *
-from utils import lr_loss_plot
+from utils import lr_loss_plot, save_model, load_model
 
 
 # loss_function = F.binary_cross_entropy_with_logits
@@ -16,43 +16,43 @@ def get_optimizer(model, lr:float = .01, wd:float = 0.):
 
 ######### FIND LEARNING RATE & STORE/LOAD history #####
 
-def lr_finder(model, train_dl, p:(Path,str)=None, lr_low:float=1e-5, lr_high:float=1, epochs:int=2):
-    '''
-    Lr finder with the first approach 
-    
-    
-    :param model: 
-    :param train_dl: 
-    :param p: 
-    :param lr_low: 
-    :param lr_high: 
-    :param epochs: 
-    :return: 
-    '''
-    losses = []
-    if p: save_model(model, str(p))
-        
-    iterations = epochs * len(train_dl)
-    delta = (lr_high - lr_low) / iterations
-    lrs = [lr_low + i * delta for i in range(iterations)]
-    model.train()
-    ind = 0
-    for i in range(epochs):
-        train_dl.set_random_choices()
-        for x, y in train_dl:
-            optim = get_optimizer(model, lr=lrs[ind])
-            x = x.cuda().float()
-            y = y.cuda()
-            out = model(x)
-            loss = loss_function(out, y)
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
-            losses.append(loss.item())
-            ind += 1
-    if p: load_model(model, str(p))
-
-    return lrs, losses
+# def lr_finder(model, train_dl, p:(Path,str)=None, lr_low:float=1e-5, lr_high:float=1, epochs:int=2):
+#     '''
+#     Lr finder with the first approach
+#
+#
+#     :param model:
+#     :param train_dl:
+#     :param p:
+#     :param lr_low:
+#     :param lr_high:
+#     :param epochs:
+#     :return:
+#     '''
+#     losses = []
+#     if p: save_model(model, str(p))
+#
+#     iterations = epochs * len(train_dl)
+#     delta = (lr_high - lr_low) / iterations
+#     lrs = [lr_low + i * delta for i in range(iterations)]
+#     model.train()
+#     ind = 0
+#     for i in range(epochs):
+#         train_dl.set_random_choices()
+#         for x, y in train_dl:
+#             optim = get_optimizer(model, lr=lrs[ind])
+#             x = x.cuda().float()
+#             y = y.cuda()
+#             out = model(x)
+#             loss = F.binary_cross_entropy_with_logits(out.squeeze(), y)
+#             loss.backward()
+#             optim.step()
+#             optim.zero_grad()
+#             losses.append(loss.item())
+#             ind += 1
+#     if p: load_model(model, str(p))
+#
+#     return lrs, losses
 
 ######### Store/Load lr finder output #####
 
@@ -143,7 +143,7 @@ def cos_annealing(start_lr, end_lr, n_iterations):
 
 ### Diff lr ###
 
-def diff_range(val, alpha=1.3):
+def diff_range(val, alpha=1./3):
     return [val * alpha ** i for i in range(2, -1, -1)]
 
 #### POLICIES (Finder and Training) ######
@@ -195,7 +195,7 @@ def lr_finder(model, n_epochs, train_dl, min_lr=1e-4, max_lr=1e-1, save_path=Non
             if cnt == early_stopping: return lrs[:cnt], losses
             cnt += 1
 
-    if save_path: load_model(model, p)
+    if save_path: load_model(model, save_path)
 
     return lrs, losses
 

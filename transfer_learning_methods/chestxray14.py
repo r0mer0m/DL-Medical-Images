@@ -115,39 +115,39 @@ valid_dl = DataBatches(valid_df,img_folder_path=IMG_FOLDER,transforms=False,
 
 train_df = train_df.sample(frac=1)
 
-# for N in SAMPLE_AMOUNTS:
+for N in SAMPLE_AMOUNTS:
 
-#     df = train_df[:N]
+    df = train_df[:N]
 
-#     train_dl = DataBatches(df, img_folder_path=IMG_FOLDER, transforms=TRANSFORMATIONS, 
-#                            shuffle=True, data=DATA, batch_size=BATCH_SIZE, normalize=PRETRAINED)
+    train_dl = DataBatches(df, img_folder_path=IMG_FOLDER, transforms=TRANSFORMATIONS, 
+                           shuffle=True, data=DATA, batch_size=BATCH_SIZE, normalize=PRETRAINED)
 
-#     freeze = True
-#     gradual_unfreezing = False    
+    freeze = True
+    gradual_unfreezing = False    
 
-#     model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
+    model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
 
-#     save_path = SAVE_DIRECTORY/f"chestxray14-feature-extractor-{N}.pth"
+    save_path = SAVE_DIRECTORY/f"chestxray14-feature-extractor-{N}.pth"
 
-#     one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
+    one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
 
-#     freeze = False
-#     gradual_unfreezing = False
+    freeze = False
+    gradual_unfreezing = False
     
-#     model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
+    model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
 
-#     save_path = SAVE_DIRECTORY/f"chestxray14-fine-tune-all-{N}.pth"
+    save_path = SAVE_DIRECTORY/f"chestxray14-fine-tune-all-{N}.pth"
     
-#     one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
+    one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
     
-#     freeze = True
-#     gradual_unfreezing = True
+    freeze = True
+    gradual_unfreezing = True
     
-#     model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
+    model = DenseNet121(14, pretrained=PRETRAINED, freeze=freeze).cuda()
 
-#     save_path = SAVE_DIRECTORY/f"chestxray14-grad-unfr-diff-lr-{N}.pth"
+    save_path = SAVE_DIRECTORY/f"chestxray14-grad-unfr-diff-lr-{N}.pth"
     
-#     one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1)
+    one_cycle_train(EPOCHS, train_dl, valid_dl, model, max_lr=.001, save_path=save_path, unfreeze_during_loop=(.1, .2) if gradual_unfreezing else None, alpha=1./3)
     
 # Evaluation
 

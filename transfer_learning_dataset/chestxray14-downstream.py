@@ -172,7 +172,7 @@ for N in n_samples:
     
     train_df_balanced = train_df[:N]
 
-    train_dl = DataBatches(df=train_df, transforms=TRANSFORMATIONS, shuffle=True,
+    train_dl = DataBatches(df=train_df_balanced, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, data=DATA,
                            r_pix=R_PIX, normalize=NORMALIZE, seed=SEED)
 
@@ -226,7 +226,7 @@ for N in n_samples:
     chexpert['auc'].append(auc)
     chexpert['accuracy'].append(accuracy)
     
-    train_dl = DataBatches(df=train_df, transforms=TRANSFORMATIONS, shuffle=True,
+    train_dl = DataBatches(df=train_df_balanced, transforms=TRANSFORMATIONS, shuffle=True,
                            img_folder_path=IMG_FOLDER, batch_size=BATCH_SIZE, data=DATA,
                            r_pix=R_PIX, normalize=False, seed=SEED)
 

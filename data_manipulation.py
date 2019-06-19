@@ -15,8 +15,16 @@ def normalize_mura(im):
 
 ######### TRANSFORMATIONS ##########
 
+def center_crop(im, r_pix=8):
+    """ Returns a center crop of an image"""
+    r, c, *_ = im.shape
+    c_pix = round(r_pix * c / r)
+    return crop(im, r_pix, c_pix, r - 2 * r_pix, c - 2 * c_pix)
 
 def crop(im, r, c, target_r, target_c): return im[r:r+target_r, c:c+target_c]
+
+#### Data-set level
+
 
 
 class RandomCrop:
@@ -109,11 +117,33 @@ class Flip:
         return {k: np.random.random(size=N) for k, v in self.options(x_shape).items()}
 
 
-def center_crop(im, r_pix=8):
-    """ Returns a center crop of an image"""
-    r, c, *_ = im.shape
-    c_pix = round(r_pix * c / r)
-    return crop(im, r_pix, c_pix, r - 2 * r_pix, c - 2 * c_pix)
+####  Data-batch level (after DL applied)
+
+class MixUp:
+    '''
+    Assumes it's running on cuda.
+
+    Implementation can be made more efficient.
+    '''
+
+    def __init__(self, alpha=.4):
+        self.alpha = alpha
+
+    def __call__(self, x, y):
+        batch_size = x.shape[0]
+
+        t = np.random.beta(.4, .4, size=batch_size)[None]
+        t = torch.tensor(np.max(np.concatenate([t, 1 - t]), 0).reshape(-1, 1, 1, 1), dtype=torch.float).cuda()
+        idx = np.random.permutation(range(batch_size))
+
+
+        # print(x.shape, y.shape)
+        # print((t * x + (1 - t) * x[idx]).shape, (t[:, :, 0, 0] * y + (1 - t[:, :, 0, 0]) * y[idx]).shape)
+        # print(t[:, :, 0, 0].shape)
+        # print((t[:, :, 0, 0]* y).shape )
+        # print(((1 - t[:, :, 0, 0]) * y[idx]).shape)
+
+        return (t * x + (1 - t) * x[idx]), (t.view(*y.shape) * y + (1 - t.view(*y.shape)) * y[idx])
 
 
 ###### Dataset by set of data ########
@@ -293,7 +323,7 @@ class DataBatches:
     '''
 
     def __init__(self, df, transforms, shuffle, img_folder_path, data, batch_size=16, num_workers=8,
-                 drop_last=False, r_pix=8, normalize=True, seed=42):
+                 drop_last=False, r_pix=8, normalize=True, seed=42,  mixup=False):
 
         self.data = data
 
@@ -309,7 +339,9 @@ class DataBatches:
             )
         else: ValueError("This dataset is not contemplated")
 
-    def __iter__(self): return ((x.cuda().float(), y.cuda().float().squeeze()) for (x, y) in self.dataloader)
+        self.f = MixUp(alpha=.4) if mixup else lambda x, y: (x, y) # α=4 paper recommendation
+
+    def __iter__(self): return (self.f(x.cuda().float(), y.cuda().float().squeeze()) for (x, y) in self.dataloader)
 
     def __len__(self): return len(self.dataloader)
 
@@ -342,7 +374,7 @@ def multi_label_2_binary(df, idx=6):
     return df_out
 
 
-def balance_obs(df:pd.DataFrame, amt:int =None, random_state:int=42):
+def balance_obs(df:pd.DataFrame, amt:int =None, rate_positive=.5, random_state:int=42):
     '''
     Balance the data for a binary classification task.
     
@@ -357,21 +389,22 @@ def balance_obs(df:pd.DataFrame, amt:int =None, random_state:int=42):
     :return: dataframe with balanced data and 2*`amt` rows.
     
     '''
-    
-    if amt is None: amt = len(df[df.Label==1])
-    else: amt = amt//2
-    
+
+    if amt is None: amt = int(float(len(df[df.Label==1]))/rate_positive)
+
     pos_df = df[df.Label==1]
     neg_df = df[df.Label==0]
-    
-    if amt > len(df[df.Label==1]):
+
+    if int(amt*rate_positive) > len(df[df.Label==1]):
+        n_pos = int(amt*rate_positive)
         pos = pos_df
-        pos_upsampling = pos_df.sample(n = amt-len(df[df.Label==1]), random_state=random_state, replace=True)
-        neg = neg_df.sample(n = amt, random_state=random_state, replace=False)
+        pos_upsampling = pos_df.sample(n = n_pos-len(df[df.Label==1]), random_state=random_state, replace=True)
+        neg = neg_df.sample(n = amt - n_pos, random_state=random_state, replace=False)
         data = [pos, pos_upsampling, neg]
     else:
-        pos = pos_df.sample(n=amt, random_state=random_state, replace=False)
-        neg = neg_df.sample(n=amt, random_state=random_state, replace=False)
+        n_pos = int(amt*rate_positive)
+        pos = pos_df.sample(n=n_pos, random_state=random_state, replace=False)
+        neg = neg_df.sample(n=amt-n_pos, random_state=random_state, replace=False)
         data = [pos,  neg]
 
     return pd.concat(data).reset_index(drop=True)
