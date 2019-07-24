@@ -26,9 +26,6 @@ Currently re-writting the code on a series of notebooks to make this research mo
     - [X] Pneumnoia
     - [X] Emphysema
     - [X] Hernia
-- [ ] Experiments on synthetic labels:
-  - [ ] Labels creation (cnn/ridge).
-  - [ ] Fitting on synthetic data.
 
 ## Introduction
 
